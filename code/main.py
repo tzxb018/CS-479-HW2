@@ -29,6 +29,13 @@ model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS)
 
 util.print_arch(model)
 
+# saving our model
+VERSION = 1
+PATH = "./models/rnn" + str(VERSION)
+model.save(PATH)
+
 # evaluating our model
 history = model.evaluate(x_test, y_test, verbose=0)
 print("test accuracy: ", history[1])
+
+util.graph_one(history, VERSION)
