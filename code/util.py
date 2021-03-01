@@ -27,14 +27,12 @@ def print_arch(model):
 
 
 def graph_one(history, VERSION):
-    plt.plot(history.history["val_accuracy"])
     plt.plot(history.history["accuracy"])
+    plt.plot(history.history["val_accuracy"])
     plt.title("model accuracy version " + str(VERSION))
     plt.ylabel("accuracy")
     plt.xlabel("epoch")
-    plt.legend(
-        ["validation accuracy, accuracy",], loc="lower right",
-    )
+    plt.legend(["train", "test"], loc="upper left")
     plt.savefig("./output/rnn_v" + str(VERSION) + "_accuracy.png")
     plt.clf()
 

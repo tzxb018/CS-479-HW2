@@ -24,20 +24,30 @@ model.compile(
     metrics=["accuracy"],
 )
 
+# setting up early stopping
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
+
 # training our model
-BATCH_SIZE = 32
-EPOCHS = 3
-model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS)
+BATCH_SIZE = 64
+EPOCHS = 25
+history = model.fit(
+    x_train,
+    y_train,
+    batch_size=BATCH_SIZE,
+    epochs=EPOCHS,
+    callbacks=[early_stopping],
+    validation_split=0.1,
+)
 
 util.print_arch(model)
 
 # saving our model
 VERSION = 1
-PATH = "./models/rnn" + str(VERSION)
+PATH = "./models/rnn_v" + str(VERSION)
 model.save(PATH)
 
 # evaluating our model
-history = model.evaluate(x_test, y_test, verbose=0)
-print("test accuracy: ", history[1])
+evaluate = model.evaluate(x_test, y_test, verbose=0)
+print("test accuracy: ", evaluate[1])
 
 util.graph_one(history, VERSION)
