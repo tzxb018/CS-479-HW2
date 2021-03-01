@@ -10,6 +10,8 @@ import util
 MAX_SEQ_LEN = 128
 MAX_TOKENS = 5000
 (x_train, y_train), (x_test, y_test) = util.getDataset(MAX_TOKENS, MAX_SEQ_LEN)
+x_train = tf.cast(x_train, tf.float32)
+y_train = tf.cast(y_train, tf.float32)
 
 # getting our model
 EMBEDDING_SIZE = 32

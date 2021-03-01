@@ -13,8 +13,9 @@ def define_model(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN):
     )
     cells = [tf.keras.layers.LSTMCell(256), tf.keras.layers.LSTMCell(64)]
     rnn = tf.keras.layers.RNN(cells)
-    output_layer = tf.keras.layers.Dense(1)
+    lstm_1 = tf.keras.layers.LSTM(100)
+    output_layer = tf.keras.layers.Dense(1, activation="sigmoid")
 
-    model = tf.keras.Sequential([embedding_layer, rnn, output_layer])
+    model = tf.keras.Sequential([embedding_layer, lstm_1, output_layer])
 
     return model
