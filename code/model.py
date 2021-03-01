@@ -5,12 +5,16 @@ import matplotlib.pyplot as plt  # to visualize data and draw plots
 from tqdm import tqdm  # to track progress of loops
 
 # building the model with the vectorize layer and the embedding layer
-def define_model(vectorize_layer, embedding_layer):
-    # Build the model
+def define_model(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN):
+
+    # adding an embedding layer
+    embedding_layer = tf.keras.layers.Embedding(
+        MAX_TOKENS, EMBEDDING_SIZE, input_length=MAX_SEQ_LEN
+    )
     cells = [tf.keras.layers.LSTMCell(256), tf.keras.layers.LSTMCell(64)]
     rnn = tf.keras.layers.RNN(cells)
     output_layer = tf.keras.layers.Dense(1)
 
-    model = tf.keras.Sequential([vectorize_layer, embedding_layer, rnn, output_layer])
+    model = tf.keras.Sequential([embedding_layer, rnn, output_layer])
 
     return model
