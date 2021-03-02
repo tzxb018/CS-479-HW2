@@ -15,7 +15,11 @@ y_train = tf.cast(y_train, tf.float32)
 
 # getting our model
 EMBEDDING_SIZE = 32
-model = model.define_model(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN)
+DROPOUT_RATE = 0.5
+REG_CONSTANT = 0.01
+model = model.define_rnn(
+    EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
+)
 
 # compiling our model!
 model.compile(
@@ -29,7 +33,7 @@ early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
 
 # training our model
 BATCH_SIZE = 64
-EPOCHS = 25
+EPOCHS = 3
 history = model.fit(
     x_train,
     y_train,
@@ -44,7 +48,8 @@ util.print_arch(model)
 # saving our model
 VERSION = 1
 PATH = "./models/rnn_v" + str(VERSION)
-model.save(PATH)
+# model.save(PATH)
+tf.keras.Model.save(model, PATH)
 
 # evaluating our model
 evaluate = model.evaluate(x_test, y_test, verbose=0)
