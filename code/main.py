@@ -10,10 +10,16 @@ import util
 MAX_SEQ_LEN = 128
 MAX_TOKENS = 5000
 (x_train, y_train), (x_test, y_test) = util.getDataset(MAX_TOKENS, MAX_SEQ_LEN)
+x_train = tf.cast(x_train, tf.float32)
+y_train = tf.cast(y_train, tf.float32)
 
 # getting our model
 EMBEDDING_SIZE = 32
-model = model.define_model(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN)
+DROPOUT_RATE = 0.5
+REG_CONSTANT = 0.01
+model = model.define_rnn(
+    EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
+)
 
 # compiling our model!
 model.compile(
@@ -22,20 +28,31 @@ model.compile(
     metrics=["accuracy"],
 )
 
+# setting up early stopping
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
+
 # training our model
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 3
-model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS)
+history = model.fit(
+    x_train,
+    y_train,
+    batch_size=BATCH_SIZE,
+    epochs=EPOCHS,
+    callbacks=[early_stopping],
+    validation_split=0.1,
+)
 
 util.print_arch(model)
 
 # saving our model
 VERSION = 1
-PATH = "./models/rnn" + str(VERSION)
-model.save(PATH)
+PATH = "./models/rnn_v" + str(VERSION)
+# model.save(PATH)
+tf.keras.Model.save(model, PATH)
 
 # evaluating our model
-history = model.evaluate(x_test, y_test, verbose=0)
-print("test accuracy: ", history[1])
+evaluate = model.evaluate(x_test, y_test, verbose=0)
+print("test accuracy: ", evaluate[1])
 
 util.graph_one(history, VERSION)
