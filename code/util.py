@@ -26,23 +26,24 @@ def print_arch(model):
         model.summary(print_fn=lambda x: fh.write(x + "\n"))
 
 
-def graph_one(history, VERSION):
+def graph_one(history, PATH):
     plt.plot(history.history["accuracy"])
     plt.plot(history.history["val_accuracy"])
-    plt.title("model accuracy version " + str(VERSION))
+    plt.title("model accuracy")
     plt.ylabel("accuracy")
     plt.xlabel("epoch")
     plt.legend(["train", "test"], loc="upper left")
-    plt.savefig("./output/rnn_v" + str(VERSION) + "_accuracy.png")
+    plt.savefig("./output/" + PATH + "_accuracy.png")
     plt.clf()
 
     plt.plot(history.history["val_loss"])
     plt.plot(history.history["loss"])
-    plt.title("model loss version " + str(VERSION))
+    plt.title("model loss version ")
     plt.ylabel("loss")
     plt.xlabel("epoch")
     plt.legend(
-        ["validation loss, loss",], loc="lower right",
+        ["validation loss, loss"], loc="lower right",
     )
-    plt.savefig("./output/rnn_v" + str(VERSION) + "_loss.png")
+    plt.savefig("./output/" + PATH + "_loss.png")
     plt.clf()
+
