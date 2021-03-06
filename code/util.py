@@ -19,6 +19,24 @@ def getDataset(num_words, max_seq_len):
     return (x_train, y_train), (x_test, y_test)
 
 
+def getDS():
+    # load the text dataset
+    ds = tfds.load("imdb_reviews")
+
+    return ds
+
+
+def forward_pass(ds, model):
+    # test a forward pass
+    for batch in ds["train"].batch(32):
+        logits = model(batch["text"])
+        loss = tf.keras.losses.binary_crossentropy(
+            tf.expand_dims(batch["label"], -1), logits, from_logits=True
+        )
+        print(loss)
+        break
+
+
 def print_arch(model):
     print(model.summary())
     with open("./output/report.txt", "w") as fh:
