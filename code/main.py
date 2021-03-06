@@ -23,7 +23,7 @@ error_diff_estimation = 0
 K_graph = 15
 for i in range(1, K):
 
-    print("K-iteration", K)
+    print("K-iteration", i)
     len_of_train = len(x_train)
     len_of_test = len(x_test)
     # partitioning data into K equal sized subsets

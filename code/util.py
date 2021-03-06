@@ -45,8 +45,8 @@ def print_arch(model):
 
 
 def graph_one(history, PATH):
-    plt.plot(history.history["accuracy"])
-    plt.plot(history.history["val_accuracy"])
+    plt.plot(history.history["acc"])
+    plt.plot(history.history["val_acc"])
     plt.title("model accuracy")
     plt.ylabel("accuracy")
     plt.xlabel("epoch")
