@@ -35,7 +35,9 @@ def run_model(
     )
 
     # setting up early stopping
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor="val_accuracy", mode="max", min_delta=1, baseline=0.4,
+    )
 
     # training our model
     history = model1.fit(
@@ -70,10 +72,11 @@ def run_model(
 
 
 # ***********************************MAIN*****************************************
-# getting the data set
+# # getting the data set
 MAX_SEQ_LEN = 128
 MAX_TOKENS = 5000
 (x_train, y_train), (x_test, y_test) = util.getDataset(MAX_TOKENS, MAX_SEQ_LEN)
+
 
 # setting up k-fold cross validation
 K = 30
@@ -87,7 +90,7 @@ error_diff_estimation = 0
 K_graph = 15
 for i in range(1, K):
 
-    print("K-iteration", i)
+    print("K-iteration " + str(i) + "*********************************")
     len_of_train = len(x_train)
     len_of_test = len(x_test)
     # partitioning data into K equal sized subsets
@@ -153,6 +156,10 @@ for i in range(1, K):
 
 error_diff_estimation = error_diff_estimation / K
 print("Error Difference Estaimation: " + str(error_diff_estimation))
+f = open("./output/evaluated_results.txt", "a")
+f.write("estimated diff: " + str(error_diff_estimation))
+f.close()
+
 
 # evaluating both models on whole dataset
 eval_full_loss1, eval_full_acc1, history_full_1 = run_model(
@@ -169,6 +176,7 @@ eval_full_loss1, eval_full_acc1, history_full_1 = run_model(
     DROPOUT_RATE_1,
     REG_CONSTANT_1,
 )
+print("finished with model 1\n")
 
 eval_full_loss2, eval_full_acc2, history_full_2 = run_model(
     x_train,
@@ -184,6 +192,7 @@ eval_full_loss2, eval_full_acc2, history_full_2 = run_model(
     DROPOUT_RATE_2,
     REG_CONSTANT_2,
 )
+print("finished with model 2\n")
 
 # graphing the two full trained model
 util.graph_two(
@@ -195,7 +204,15 @@ util.graph_two(
     REG_CONSTANT_2,
 )
 
+print("finished graphing")
+
 # getting the confusion matrix from both models
+DROPOUT_RATE_1 = 0
+REG_CONSTANT_1 = 0.01
+TYPE_OF_RNN = "LSTM"
+DROPOUT_RATE_2 = 0.5
+REG_CONSTANT_2 = 0.01
+
 PATH1 = (
     "rnn_"
     + str(TYPE_OF_RNN)
@@ -213,4 +230,10 @@ PATH2 = (
     + "_rc"
     + str(REG_CONSTANT_2).replace(".", "x")
 )
+
+util.get_confusion_matrix(PATH1, x_test, y_test, DROPOUT_RATE_1, REG_CONSTANT_1)
+print("confusion matrix of model 1")
+
+util.get_confusion_matrix(PATH2, x_test, y_test, DROPOUT_RATE_2, REG_CONSTANT_2)
+print("confusion matrix of model 2")
 

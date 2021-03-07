@@ -83,7 +83,13 @@ def graph_two(history1, history2, dr1, dr2, cr1, cr2):
         shadow=True,
     )
     plt.savefig(
-        "./output/COMPARISON_accuracy.png",
+        "./output/dr"
+        + str(dr1).replace(".", "x")
+        + str(dr2).replace(".", "x")
+        + "cr"
+        + str(cr1).replace(".", "x")
+        + str(cr2).replace(".", "x")
+        + "comparison_accuracy.png",
         bbox_extra_artists=(lgd,),
         bbox_inches="tight",
     )
@@ -105,22 +111,30 @@ def graph_two(history1, history2, dr1, dr2, cr1, cr2):
         shadow=True,
     )
     plt.savefig(
-        "./output/COMPARISON_loss.png", bbox_extra_artists=(lgd,), bbox_inches="tight"
+        "./output/dr"
+        + str(dr1).replace(".", "x")
+        + str(dr2).replace(".", "x")
+        + "cr"
+        + str(cr1).replace(".", "x")
+        + str(cr2).replace(".", "x")
+        + "comparison_loss.png",
+        bbox_extra_artists=(lgd,),
+        bbox_inches="tight",
     )
     plt.clf()
 
 
-def get_confusion_matrix(PATH, test_x, test_y, DROPOUT_RATE, REG_CONSTANT):
-    PATH = "./models/" + PATH
-    model = tf.keras.models.load_model(PATH)
-    model.compile(
+def get_confusion_matrix(PATHx, test_x, test_y, DROPOUT_RATE, REG_CONSTANT):
+    PATH = "./models/" + PATHx
+    modelx = tf.keras.models.load_model(PATH)
+    modelx.compile(
         optimizer=tf.keras.optimizers.Adam(),
         loss=tf.keras.losses.binary_crossentropy,
         metrics=["accuracy"],
     )
-    evaluation = model.evaluate(test_x, test_y, verbose=0)
+    evaluation = modelx.evaluate(test_x, test_y, verbose=2)
     print("Retrieved model from " + PATH)
-    print("\nTest accuracy: ", evaluation[1])
+    print("Test accuracy: ", evaluation[1])
 
     f = open("./output/evaluated_results.txt", "a")
     f.write(
@@ -134,12 +148,36 @@ def get_confusion_matrix(PATH, test_x, test_y, DROPOUT_RATE, REG_CONSTANT):
     )
     f.close()
 
-    y_pred = model.predict(test_x)
-    y_pred = np.argmax(y_pred, axis=1)
+    y_pred = modelx.predict(test_x)
+    print(y_pred)
+    y_predictions = []
+    for y in y_pred:
+        if y > 0.5:
+            y_predictions.append([1])
+        else:
+            y_predictions.append([0])
 
-    conf_mat = tf.math.confusion_matrix(test_y, y_pred, num_classes=2)
-    plt.title("Confusion Matrix of Model")
+    conf_mat = tf.math.confusion_matrix(test_y, y_predictions)
+    print(conf_mat)
+    plt.title(
+        "Confusion Matrix of Model (Dropout="
+        + str(DROPOUT_RATE)
+        + ", Reg Cosntant="
+        + str(REG_CONSTANT)
+        + ")"
+    )
     plt.imshow(conf_mat, cmap=plt.cm.jet, interpolation="nearest")
     plt.colorbar()
-    plt.savefig("./output/" + PATH + ".png")
+    plt.ylabel("True label")
+    plt.xlabel("Predicted label")
+    classNames = ["Negative", "Positive"]
+    tick_marks = np.arange(len(classNames))
+    plt.xticks(tick_marks, classNames, rotation=45)
+    plt.yticks(tick_marks, classNames)
+    for i in range(2):
+        for j in range(2):
+            plt.text(
+                j, i, str(tf.cast(conf_mat[i][j], tf.int32).numpy()), color="white"
+            )
+    plt.savefig("./output/" + PATHx + "_confusion_matrix.png", bbox_inches="tight")
     plt.clf()
