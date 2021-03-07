@@ -6,6 +6,70 @@ from tqdm import tqdm  # to track progress of loops
 import model
 import util
 
+# function for running the model
+def run_model(
+    train_x,
+    train_y,
+    test_x,
+    test_y,
+    TYPE_OF_RNN,
+    EMBEDDING_SIZE,
+    MAX_TOKENS,
+    MAX_SEQ_LEN,
+    BATCH_SIZE,
+    EPOCHS,
+    DROPOUT_RATE,
+    REG_CONSTANT,
+):
+    # train learning algorithm L1 on training set i to get hypo 1
+    # getting our model
+    model1 = model.define_rnn(
+        EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
+    )
+
+    # compiling our model!
+    model1.compile(
+        optimizer=tf.keras.optimizers.Adam(),
+        loss=tf.keras.losses.binary_crossentropy,
+        metrics=["accuracy"],
+    )
+
+    # setting up early stopping
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
+
+    # training our model
+    history = model1.fit(
+        train_x,
+        train_y,
+        batch_size=BATCH_SIZE,
+        epochs=EPOCHS,
+        callbacks=[early_stopping],
+        validation_split=0.1,
+    )
+
+    util.print_arch(model1)
+
+    # saving our model
+    PATH = (
+        "rnn_"
+        + str(TYPE_OF_RNN)
+        + "_dr"
+        + str(DROPOUT_RATE).replace(".", "x")
+        + "_rc"
+        + str(REG_CONSTANT).replace(".", "x")
+    )
+    # model.save(PATH)
+    tf.keras.Model.save(model1, "./models/" + PATH)
+
+    # evaluating our model
+    evaluate = model1.evaluate(test_x, test_y, verbose=0)
+    print("test accuracy: ", evaluate[1])
+    print("loss: ", evaluate[0])
+
+    return evaluate[0], evaluate[1], history
+
+
+# ***********************************MAIN*****************************************
 # getting the data set
 MAX_SEQ_LEN = 128
 MAX_TOKENS = 5000
@@ -38,113 +102,115 @@ for i in range(1, K):
     EMBEDDING_SIZE = 32
     TYPE_OF_RNN = "LSTM"
 
-    # train learning algorithm L1 on training set i to get hypo 1
-    # getting our model
-    DROPOUT_RATE = 0.5
-    REG_CONSTANT = 0.01
-    model1 = model.define_rnn(
-        EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
-    )
-
-    # compiling our model!
-    model1.compile(
-        optimizer=tf.keras.optimizers.Adam(),
-        loss=tf.keras.losses.binary_crossentropy,
-        metrics=["accuracy"],
-    )
-
-    # setting up early stopping
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
-
-    # training our model
-    history = model1.fit(
+    # running model 1
+    DROPOUT_RATE_1 = 0
+    REG_CONSTANT_1 = 0.01
+    eval_loss, eval_acc, history = run_model(
         x_train_k,
         y_train_k,
-        batch_size=BATCH_SIZE,
-        epochs=EPOCHS,
-        callbacks=[early_stopping],
+        x_test_k,
+        y_test_k,
+        TYPE_OF_RNN,
+        EMBEDDING_SIZE,
+        MAX_TOKENS,
+        MAX_SEQ_LEN,
+        BATCH_SIZE,
+        EPOCHS,
+        DROPOUT_RATE_1,
+        REG_CONSTANT_1,
     )
 
-    # util.print_arch(model)
-
-    # saving our model
-    PATH = (
-        "rnn_"
-        + str(TYPE_OF_RNN)
-        + "_dr"
-        + str(DROPOUT_RATE).replace(".", "x")
-        + "_rc"
-        + str(REG_CONSTANT).replace(".", "x")
-    )
-    # model.save(PATH)
-    tf.keras.Model.save(model1, "./models/" + PATH)
-    if i == K_graph:
-        util.graph_one(history, PATH)
-
-    # evaluating our model 1
-    evaluate1 = model1.evaluate(x_test_k, y_test_k, verbose=0)
-    print("test accuracy: ", evaluate1[1])
-    print("loss: ", evaluate1[0])
-    model1_accuracies.append(evaluate1[1])
-    model1_loss.append(evaluate1[0])
+    model1_accuracies.append(eval_loss)
+    model1_loss.append(eval_acc)
 
     # *********************************************************************************
     # train learning algorithm L2 on training set i to get hypo 2
     # getting our model
-    # train learning algorithm L1 on training set i to get hypo 1
-    # getting our model
-    DROPOUT_RATE = 0.5
-    REG_CONSTANT = 0.01
-    model2 = model.define_rnn(
-        EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
-    )
-
-    # compiling our model!
-    model2.compile(
-        optimizer=tf.keras.optimizers.Adam(),
-        loss=tf.keras.losses.binary_crossentropy,
-        metrics=["accuracy"],
-    )
-
-    # setting up early stopping
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
-
-    # training our model
-    history = model2.fit(
+    DROPOUT_RATE_2 = 0.5
+    REG_CONSTANT_2 = 0.01
+    eval_loss2, eval_acc2, history2 = run_model(
         x_train_k,
         y_train_k,
-        batch_size=BATCH_SIZE,
-        epochs=EPOCHS,
-        callbacks=[early_stopping],
+        x_test_k,
+        y_test_k,
+        TYPE_OF_RNN,
+        EMBEDDING_SIZE,
+        MAX_TOKENS,
+        MAX_SEQ_LEN,
+        BATCH_SIZE,
+        EPOCHS,
+        DROPOUT_RATE_2,
+        REG_CONSTANT_2,
     )
 
-    # util.print_arch(model)
-
-    # saving our model
-    PATH = (
-        "rnn_"
-        + str(TYPE_OF_RNN)
-        + "_dr"
-        + str(DROPOUT_RATE).replace(".", "x")
-        + "_rc"
-        + str(REG_CONSTANT).replace(".", "x")
-    )
-    # model.save(PATH)
-    tf.keras.Model.save(model2, "./models/" + PATH)
-    if i == K_graph:
-        util.graph_one(history, PATH)
-
-    # evaluating our model 2
-    evaluate2 = model2.evaluate(x_test_k, y_test_k, verbose=0)
-    print("test accuracy: ", evaluate2[1])
-    print("loss: ", evaluate2[0])
-    model1_accuracies.append(evaluate2[1])
-    model1_loss.append(evaluate2[0])
+    model2_accuracies.append(eval_acc2)
+    model2_loss.append(eval_loss2)
 
     # finding the error difference in this k-iteration
-    p_i = evaluate1[0] - evaluate2[0]
+    p_i = eval_acc - eval_acc2
     error_diff.append(p_i)
     error_diff_estimation = error_diff_estimation + p_i
 
 error_diff_estimation = error_diff_estimation / K
 print("Error Difference Estaimation: " + str(error_diff_estimation))
+
+# evaluating both models on whole dataset
+eval_full_loss1, eval_full_acc1, history_full_1 = run_model(
+    x_train,
+    y_train,
+    x_test,
+    y_test,
+    TYPE_OF_RNN,
+    EMBEDDING_SIZE,
+    MAX_TOKENS,
+    MAX_SEQ_LEN,
+    BATCH_SIZE,
+    EPOCHS,
+    DROPOUT_RATE_1,
+    REG_CONSTANT_1,
+)
+
+eval_full_loss2, eval_full_acc2, history_full_2 = run_model(
+    x_train,
+    y_train,
+    x_test,
+    y_test,
+    TYPE_OF_RNN,
+    EMBEDDING_SIZE,
+    MAX_TOKENS,
+    MAX_SEQ_LEN,
+    BATCH_SIZE,
+    EPOCHS,
+    DROPOUT_RATE_2,
+    REG_CONSTANT_2,
+)
+
+# graphing the two full trained model
+util.graph_two(
+    history_full_1,
+    history_full_2,
+    DROPOUT_RATE_1,
+    DROPOUT_RATE_2,
+    REG_CONSTANT_1,
+    REG_CONSTANT_2,
+)
+
+# getting the confusion matrix from both models
+PATH1 = (
+    "rnn_"
+    + str(TYPE_OF_RNN)
+    + "_dr"
+    + str(DROPOUT_RATE_1).replace(".", "x")
+    + "_rc"
+    + str(REG_CONSTANT_1).replace(".", "x")
+)
+
+PATH2 = (
+    "rnn_"
+    + str(TYPE_OF_RNN)
+    + "_dr"
+    + str(DROPOUT_RATE_2).replace(".", "x")
+    + "_rc"
+    + str(REG_CONSTANT_2).replace(".", "x")
+)
+
