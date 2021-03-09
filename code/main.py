@@ -45,7 +45,7 @@ def run_model(
         train_y,
         batch_size=BATCH_SIZE,
         epochs=EPOCHS,
-        callbacks=[early_stopping],
+        # callbacks=[early_stopping],
         validation_split=0.1,
     )
 
@@ -106,7 +106,7 @@ for i in range(1, K):
     TYPE_OF_RNN = "LSTM"
 
     # running model 1
-    DROPOUT_RATE_1 = 0
+    DROPOUT_RATE_1 = 0.25
     REG_CONSTANT_1 = 0.01
     eval_loss, eval_acc, history = run_model(
         x_train_k,
@@ -157,7 +157,7 @@ for i in range(1, K):
 error_diff_estimation = error_diff_estimation / K
 print("Error Difference Estaimation: " + str(error_diff_estimation))
 f = open("./output/evaluated_results.txt", "a")
-f.write("estimated diff: " + str(error_diff_estimation))
+f.write("Estimated Diff: " + str(error_diff_estimation) + "\n")
 f.close()
 
 
