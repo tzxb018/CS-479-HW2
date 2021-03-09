@@ -6,53 +6,234 @@ from tqdm import tqdm  # to track progress of loops
 import model
 import util
 
-# getting the data set
+# function for running the model
+def run_model(
+    train_x,
+    train_y,
+    test_x,
+    test_y,
+    TYPE_OF_RNN,
+    EMBEDDING_SIZE,
+    MAX_TOKENS,
+    MAX_SEQ_LEN,
+    BATCH_SIZE,
+    EPOCHS,
+    DROPOUT_RATE,
+    REG_CONSTANT,
+):
+    # train learning algorithm L1 on training set i to get hypo 1
+    # getting our model
+    model1 = model.define_rnn(
+        EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
+    )
+
+    # compiling our model!
+    model1.compile(
+        optimizer=tf.keras.optimizers.Adam(),
+        loss=tf.keras.losses.binary_crossentropy,
+        metrics=["accuracy"],
+    )
+
+    # setting up early stopping
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor="val_accuracy", mode="max", min_delta=1, baseline=0.4,
+    )
+
+    # training our model
+    history = model1.fit(
+        train_x,
+        train_y,
+        batch_size=BATCH_SIZE,
+        epochs=EPOCHS,
+        # callbacks=[early_stopping],
+        validation_split=0.1,
+    )
+
+    util.print_arch(model1)
+
+    # saving our model
+    PATH = (
+        "rnn_"
+        + str(TYPE_OF_RNN)
+        + "_dr"
+        + str(DROPOUT_RATE).replace(".", "x")
+        + "_rc"
+        + str(REG_CONSTANT).replace(".", "x")
+    )
+    # model.save(PATH)
+    tf.keras.Model.save(model1, "./models/" + PATH)
+
+    # evaluating our model
+    evaluate = model1.evaluate(test_x, test_y, verbose=0)
+    print("test accuracy: ", evaluate[1])
+    print("loss: ", evaluate[0])
+
+    return evaluate[0], evaluate[1], history
+
+
+# ***********************************MAIN*****************************************
+# # getting the data set
 MAX_SEQ_LEN = 128
 MAX_TOKENS = 5000
 (x_train, y_train), (x_test, y_test) = util.getDataset(MAX_TOKENS, MAX_SEQ_LEN)
-x_train = tf.cast(x_train, tf.float32)
-y_train = tf.cast(y_train, tf.float32)
 
-# getting our model
-EMBEDDING_SIZE = 32
-DROPOUT_RATE = 0.5
-REG_CONSTANT = 0.01
-model = model.define_rnn(
-    EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
-)
 
-# compiling our model!
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(),
-    loss=tf.keras.losses.binary_crossentropy,
-    metrics=["accuracy"],
-)
+# setting up k-fold cross validation
+K = 30
+model1_accuracies = []
+model2_accuracies = []
+model1_loss = []
+model2_loss = []
+error_diff = []
+error_diff_estimation = 0
+# selecting at random which K-iteration to graph for
+K_graph = 15
+for i in range(1, K):
 
-# setting up early stopping
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=3)
+    print("K-iteration " + str(i) + "*********************************")
+    len_of_train = len(x_train)
+    len_of_test = len(x_test)
+    # partitioning data into K equal sized subsets
+    # since dataset is already divided into training and testing, we will partition both the training and testing data seperately
+    x_train_k = x_train[(len_of_train // K * (i - 1)) : (len_of_train // K * i)]
+    y_train_k = y_train[(len_of_train // K * (i - 1)) : (len_of_train // K * i)]
+    x_test_k = x_test[(len_of_test // K * (i - 1)) : (len_of_test // K * i)]
+    y_test_k = y_test[(len_of_test // K * (i - 1)) : (len_of_test // K * i)]
 
-# training our model
-BATCH_SIZE = 64
-EPOCHS = 3
-history = model.fit(
+    BATCH_SIZE = 64
+    EPOCHS = 50
+    EMBEDDING_SIZE = 32
+    TYPE_OF_RNN = "LSTM"
+
+    # running model 1
+    DROPOUT_RATE_1 = 0.25
+    REG_CONSTANT_1 = 0.01
+    eval_loss, eval_acc, history = run_model(
+        x_train_k,
+        y_train_k,
+        x_test_k,
+        y_test_k,
+        TYPE_OF_RNN,
+        EMBEDDING_SIZE,
+        MAX_TOKENS,
+        MAX_SEQ_LEN,
+        BATCH_SIZE,
+        EPOCHS,
+        DROPOUT_RATE_1,
+        REG_CONSTANT_1,
+    )
+
+    model1_accuracies.append(eval_loss)
+    model1_loss.append(eval_acc)
+
+    # *********************************************************************************
+    # train learning algorithm L2 on training set i to get hypo 2
+    # getting our model
+    DROPOUT_RATE_2 = 0.5
+    REG_CONSTANT_2 = 0.01
+    eval_loss2, eval_acc2, history2 = run_model(
+        x_train_k,
+        y_train_k,
+        x_test_k,
+        y_test_k,
+        TYPE_OF_RNN,
+        EMBEDDING_SIZE,
+        MAX_TOKENS,
+        MAX_SEQ_LEN,
+        BATCH_SIZE,
+        EPOCHS,
+        DROPOUT_RATE_2,
+        REG_CONSTANT_2,
+    )
+
+    model2_accuracies.append(eval_acc2)
+    model2_loss.append(eval_loss2)
+
+    # finding the error difference in this k-iteration
+    p_i = eval_acc - eval_acc2
+    error_diff.append(p_i)
+    error_diff_estimation = error_diff_estimation + p_i
+
+error_diff_estimation = error_diff_estimation / K
+print("Error Difference Estaimation: " + str(error_diff_estimation))
+f = open("./output/evaluated_results.txt", "a")
+f.write("Estimated Diff: " + str(error_diff_estimation) + "\n")
+f.close()
+
+
+# evaluating both models on whole dataset
+eval_full_loss1, eval_full_acc1, history_full_1 = run_model(
     x_train,
     y_train,
-    batch_size=BATCH_SIZE,
-    epochs=EPOCHS,
-    callbacks=[early_stopping],
-    validation_split=0.1,
+    x_test,
+    y_test,
+    TYPE_OF_RNN,
+    EMBEDDING_SIZE,
+    MAX_TOKENS,
+    MAX_SEQ_LEN,
+    BATCH_SIZE,
+    EPOCHS,
+    DROPOUT_RATE_1,
+    REG_CONSTANT_1,
+)
+print("finished with model 1\n")
+
+eval_full_loss2, eval_full_acc2, history_full_2 = run_model(
+    x_train,
+    y_train,
+    x_test,
+    y_test,
+    TYPE_OF_RNN,
+    EMBEDDING_SIZE,
+    MAX_TOKENS,
+    MAX_SEQ_LEN,
+    BATCH_SIZE,
+    EPOCHS,
+    DROPOUT_RATE_2,
+    REG_CONSTANT_2,
+)
+print("finished with model 2\n")
+
+# graphing the two full trained model
+util.graph_two(
+    history_full_1,
+    history_full_2,
+    DROPOUT_RATE_1,
+    DROPOUT_RATE_2,
+    REG_CONSTANT_1,
+    REG_CONSTANT_2,
 )
 
-util.print_arch(model)
+print("finished graphing")
 
-# saving our model
-VERSION = 1
-PATH = "./models/rnn_v" + str(VERSION)
-# model.save(PATH)
-tf.keras.Model.save(model, PATH)
+# getting the confusion matrix from both models
+DROPOUT_RATE_1 = 0
+REG_CONSTANT_1 = 0.01
+TYPE_OF_RNN = "LSTM"
+DROPOUT_RATE_2 = 0.5
+REG_CONSTANT_2 = 0.01
 
-# evaluating our model
-evaluate = model.evaluate(x_test, y_test, verbose=0)
-print("test accuracy: ", evaluate[1])
+PATH1 = (
+    "rnn_"
+    + str(TYPE_OF_RNN)
+    + "_dr"
+    + str(DROPOUT_RATE_1).replace(".", "x")
+    + "_rc"
+    + str(REG_CONSTANT_1).replace(".", "x")
+)
 
-util.graph_one(history, VERSION)
+PATH2 = (
+    "rnn_"
+    + str(TYPE_OF_RNN)
+    + "_dr"
+    + str(DROPOUT_RATE_2).replace(".", "x")
+    + "_rc"
+    + str(REG_CONSTANT_2).replace(".", "x")
+)
+
+util.get_confusion_matrix(PATH1, x_test, y_test, DROPOUT_RATE_1, REG_CONSTANT_1)
+print("confusion matrix of model 1")
+
+util.get_confusion_matrix(PATH2, x_test, y_test, DROPOUT_RATE_2, REG_CONSTANT_2)
+print("confusion matrix of model 2")
+
