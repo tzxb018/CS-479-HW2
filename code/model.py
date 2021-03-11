@@ -45,7 +45,7 @@ def define_rnn(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTA
     embedding_layer_out = embedding_layer(input_layer)
 
     # LSMT layer
-    lstm_out = tf.keras.layers.LSTM(
+    lstm_out =tf.keras.layers.GRU(
         100,
         return_sequences=True,
         kernel_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),

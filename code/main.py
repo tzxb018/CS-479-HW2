@@ -103,10 +103,10 @@ for i in range(1, K):
     BATCH_SIZE = 64
     EPOCHS = 50
     EMBEDDING_SIZE = 32
-    TYPE_OF_RNN = "LSTM"
+    TYPE_OF_RNN="GRU"
 
     # running model 1
-    DROPOUT_RATE_1 = 0.25
+    DROPOUT_RATE_1 = 0.0
     REG_CONSTANT_1 = 0.01
     eval_loss, eval_acc, history = run_model(
         x_train_k,
