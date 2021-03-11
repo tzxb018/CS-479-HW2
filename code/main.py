@@ -130,7 +130,7 @@ for i in range(1, K):
     # train learning algorithm L2 on training set i to get hypo 2
     # getting our model
     DROPOUT_RATE_2 = 0.5
-    REG_CONSTANT_2 = 0.01
+    REG_CONSTANT_2 = 0.1
     eval_loss2, eval_acc2, history2 = run_model(
         x_train_k,
         y_train_k,
