@@ -32,7 +32,9 @@ def define_model(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE):
     return model
 
 
-def define_rnn(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT):
+def define_rnn(
+    EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT, TYPE_OF_RNN
+):
     # defining the input layer
     input_layer = Input(shape=(MAX_SEQ_LEN,))
 
@@ -44,15 +46,26 @@ def define_rnn(EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTA
     # output of the embedding layer
     embedding_layer_out = embedding_layer(input_layer)
 
-    # LSMT layer
-    lstm_out = tf.keras.layers.LSTM(
-        100,
-        return_sequences=True,
-        kernel_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
-        recurrent_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
-        bias_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
-    )(embedding_layer_out)
-    lstm_out = tf.keras.layers.Dropout(DROPOUT_RATE)(lstm_out)
+    if TYPE_OF_RNN == "LSTM":
+        # LSMT layer
+        lstm_out = tf.keras.layers.LSTM(
+            100,
+            return_sequences=True,
+            kernel_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
+            recurrent_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
+            bias_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
+        )(embedding_layer_out)
+        lstm_out = tf.keras.layers.Dropout(DROPOUT_RATE)(lstm_out)
+    elif TYPE_OF_RNN == "GRU":
+        # LSMT layer
+        lstm_out = tf.keras.layers.GRU(
+            100,
+            return_sequences=True,
+            kernel_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
+            recurrent_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
+            bias_regularizer=tf.keras.regularizers.l2(REG_CONSTANT),
+        )(embedding_layer_out)
+        lstm_out = tf.keras.layers.Dropout(DROPOUT_RATE)(lstm_out)
 
     # attention layer block
     dim = int(lstm_out.shape[2])  # getting shape
