@@ -24,7 +24,7 @@ def run_model(
     # train learning algorithm L1 on training set i to get hypo 1
     # getting our model
     model1 = model.define_rnn(
-        EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT
+        EMBEDDING_SIZE, MAX_TOKENS, MAX_SEQ_LEN, DROPOUT_RATE, REG_CONSTANT, TYPE_OF_RNN
     )
 
     # compiling our model!
@@ -35,9 +35,9 @@ def run_model(
     )
 
     # setting up early stopping
-    early_stopping = tf.keras.callbacks.EarlyStopping(
-        monitor="val_accuracy", mode="max", min_delta=1, baseline=0.4,
-    )
+    # early_stopping = tf.keras.callbacks.EarlyStopping(
+    #     monitor="val_accuracy", mode="max", min_delta=1, baseline=0.4,
+    # )
 
     # training our model
     history = model1.fit(
@@ -77,6 +77,25 @@ MAX_SEQ_LEN = 128
 MAX_TOKENS = 5000
 (x_train, y_train), (x_test, y_test) = util.getDataset(MAX_TOKENS, MAX_SEQ_LEN)
 
+# hyperparameters
+# hyperparams = [
+#     [[0, 0.01], [0.5, 0.01]],
+#     [[0, 0.01], [0, 0.1]],
+#     [[0.5, 0.01], [0.5, 0.1]],
+#     [[0.5, 0.01], [0, 0.1]],
+#     [[0, 0.1], [0.5, 0.1]],
+#     [[0, 0.01], [0.5, 0.1]],
+# ]
+
+# for params in hyperparams:
+#     DROPOUT_RATE_1 = params[1][0]
+#     REG_CONSTANT_1 = params[1][1]
+#     DROPOUT_RATE_2 = params[0][0]
+#     REG_CONSTANT_2 = params[0][1]
+DROPOUT_RATE_1 = 0
+REG_CONSTANT_1 = 0.1
+DROPOUT_RATE_2 = 0
+REG_CONSTANT_2 = 0.1
 
 # setting up k-fold cross validation
 K = 30
@@ -86,8 +105,7 @@ model1_loss = []
 model2_loss = []
 error_diff = []
 error_diff_estimation = 0
-# selecting at random which K-iteration to graph for
-K_graph = 15
+
 for i in range(1, K):
 
     print("K-iteration " + str(i) + "*********************************")
@@ -100,20 +118,20 @@ for i in range(1, K):
     x_test_k = x_test[(len_of_test // K * (i - 1)) : (len_of_test // K * i)]
     y_test_k = y_test[(len_of_test // K * (i - 1)) : (len_of_test // K * i)]
 
+    print(len(x_train_k), len(x_test_k))
+
     BATCH_SIZE = 64
     EPOCHS = 50
     EMBEDDING_SIZE = 32
-    TYPE_OF_RNN = "LSTM"
+    TYPE_OF_RNN_1 = "LSTM"
 
     # running model 1
-    DROPOUT_RATE_1 = 0.25
-    REG_CONSTANT_1 = 0.01
     eval_loss, eval_acc, history = run_model(
         x_train_k,
         y_train_k,
         x_test_k,
         y_test_k,
-        TYPE_OF_RNN,
+        TYPE_OF_RNN_1,
         EMBEDDING_SIZE,
         MAX_TOKENS,
         MAX_SEQ_LEN,
@@ -126,17 +144,17 @@ for i in range(1, K):
     model1_accuracies.append(eval_loss)
     model1_loss.append(eval_acc)
 
-    # *********************************************************************************
+    # *********************************MODEL 2******************************************
+
+    TYPE_OF_RNN_2 = "GRU"
+
     # train learning algorithm L2 on training set i to get hypo 2
-    # getting our model
-    DROPOUT_RATE_2 = 0.5
-    REG_CONSTANT_2 = 0.01
     eval_loss2, eval_acc2, history2 = run_model(
         x_train_k,
         y_train_k,
         x_test_k,
         y_test_k,
-        TYPE_OF_RNN,
+        TYPE_OF_RNN_2,
         EMBEDDING_SIZE,
         MAX_TOKENS,
         MAX_SEQ_LEN,
@@ -157,17 +175,31 @@ for i in range(1, K):
 error_diff_estimation = error_diff_estimation / K
 print("Error Difference Estaimation: " + str(error_diff_estimation))
 f = open("./output/evaluated_results.txt", "a")
-f.write("Estimated Diff: " + str(error_diff_estimation) + "\n")
+f.write(
+    "\nModel "
+    + str(TYPE_OF_RNN_1)
+    + "1: Dropout rate: "
+    + str(DROPOUT_RATE_1)
+    + " Reg Constant: "
+    + str(REG_CONSTANT_1)
+    + " Model "
+    + str(TYPE_OF_RNN_2)
+    + "2: Dropout rate: "
+    + str(DROPOUT_RATE_2)
+    + " Reg Constant: "
+    + str(REG_CONSTANT_2)
+)
+f.write("\nEstimated Diff: " + str(error_diff_estimation) + "\n")
 f.close()
 
-
 # evaluating both models on whole dataset
+EPOCHS = 3
 eval_full_loss1, eval_full_acc1, history_full_1 = run_model(
     x_train,
     y_train,
     x_test,
     y_test,
-    TYPE_OF_RNN,
+    TYPE_OF_RNN_1,
     EMBEDDING_SIZE,
     MAX_TOKENS,
     MAX_SEQ_LEN,
@@ -183,7 +215,7 @@ eval_full_loss2, eval_full_acc2, history_full_2 = run_model(
     y_train,
     x_test,
     y_test,
-    TYPE_OF_RNN,
+    TYPE_OF_RNN_2,
     EMBEDDING_SIZE,
     MAX_TOKENS,
     MAX_SEQ_LEN,
@@ -195,27 +227,22 @@ eval_full_loss2, eval_full_acc2, history_full_2 = run_model(
 print("finished with model 2\n")
 
 # graphing the two full trained model
-util.graph_two(
-    history_full_1,
-    history_full_2,
-    DROPOUT_RATE_1,
-    DROPOUT_RATE_2,
-    REG_CONSTANT_1,
-    REG_CONSTANT_2,
-)
+# util.graph_two(
+#     history_full_1,
+#     history_full_2,
+#     DROPOUT_RATE_1,
+#     DROPOUT_RATE_2,
+#     REG_CONSTANT_1,
+#     REG_CONSTANT_2,
+# )
 
-print("finished graphing")
+# print("finished graphing")
 
 # getting the confusion matrix from both models
-DROPOUT_RATE_1 = 0
-REG_CONSTANT_1 = 0.01
-TYPE_OF_RNN = "LSTM"
-DROPOUT_RATE_2 = 0.5
-REG_CONSTANT_2 = 0.01
 
 PATH1 = (
     "rnn_"
-    + str(TYPE_OF_RNN)
+    + str(TYPE_OF_RNN_1)
     + "_dr"
     + str(DROPOUT_RATE_1).replace(".", "x")
     + "_rc"
@@ -224,7 +251,7 @@ PATH1 = (
 
 PATH2 = (
     "rnn_"
-    + str(TYPE_OF_RNN)
+    + str(TYPE_OF_RNN_2)
     + "_dr"
     + str(DROPOUT_RATE_2).replace(".", "x")
     + "_rc"
